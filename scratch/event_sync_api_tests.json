@@ -1,0 +1,189 @@
+{
+  "info": {
+    "name": "MrCoach Event Sync Webhook API Tests",
+    "description": "Sample API testing payloads for Website Event Booking Synchronization Infrastructure",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Valid Event Sync Booking (User Matching / Creation)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "MRCOACH_EVENT_SYNC_2026_SECRET",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_name\": \"kamalesh\",\n  \"user_email\": \"2kamalesh0809@gmail.com\",\n  \"verified_mobile_number\": \"+919790852590\",\n  \"event_id\": \"evt_yoga_special_2026\",\n  \"event_title\": \"International Yoga Masterclass\",\n  \"booking_id\": \"bk_web_99831A\",\n  \"website_order_id\": \"order_O1928374\",\n  \"payment_gateway_order_id\": \"pay_order_razor_8812\",\n  \"payment_id\": \"pay_razor_928374619\",\n  \"payment_status\": \"PAID\",\n  \"amount_paid\": 999,\n  \"currency\": \"INR\",\n  \"ticket_quantity\": 2,\n  \"booking_date_time\": \"2026-05-27T10:30:00Z\",\n  \"event_date\": \"2026-06-15\",\n  \"booking_source\": \"website\",\n  \"metadata\": {\n    \"device\": \"Desktop\",\n    \"browser\": \"Chrome\",\n    \"coupon_code\": \"YOGA50\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/events/sync-booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events",
+            "sync-booking"
+          ]
+        },
+        "description": "Expected response: 201 Created. Matches the user by mobile/email, records sync log, saves EventBooking."
+      }
+    },
+    {
+      "name": "2. Invalid API Key Authentication (Unauthorized)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "WRONG_SECRET_KEY_TEST",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_name\": \"kamalesh\",\n  \"verified_mobile_number\": \"+919790852590\",\n  \"event_id\": \"evt_yoga_special_2026\",\n  \"event_title\": \"International Yoga Masterclass\",\n  \"payment_id\": \"pay_razor_928374619\",\n  \"payment_status\": \"PAID\",\n  \"amount_paid\": 999,\n  \"booking_date_time\": \"2026-05-27T10:30:00Z\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/events/sync-booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events",
+            "sync-booking"
+          ]
+        },
+        "description": "Expected response: 401 Unauthorized. Logs unauthorized sync attempt to database."
+      }
+    },
+    {
+      "name": "3. Failed Payment Rejection (Ignored)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "MRCOACH_EVENT_SYNC_2026_SECRET",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_name\": \"John Doe\",\n  \"verified_mobile_number\": \"+919876543210\",\n  \"event_id\": \"evt_yoga_special_2026\",\n  \"event_title\": \"International Yoga Masterclass\",\n  \"payment_id\": \"pay_razor_failed_99213\",\n  \"payment_status\": \"FAILED\",\n  \"amount_paid\": 999,\n  \"booking_date_time\": \"2026-05-27T10:30:00Z\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/events/sync-booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events",
+            "sync-booking"
+          ]
+        },
+        "description": "Expected response: 400 Bad Request. Logs failed payment status in logs and aborts."
+      }
+    },
+    {
+      "name": "4. Duplicate Booking Rejection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "MRCOACH_EVENT_SYNC_2026_SECRET",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_name\": \"kamalesh\",\n  \"verified_mobile_number\": \"+919790852590\",\n  \"event_id\": \"evt_yoga_special_2026\",\n  \"event_title\": \"International Yoga Masterclass\",\n  \"booking_id\": \"bk_web_99831A\",\n  \"website_order_id\": \"order_O1928374\",\n  \"payment_gateway_order_id\": \"pay_order_razor_8812\",\n  \"payment_id\": \"pay_razor_928374619\",\n  \"payment_status\": \"PAID\",\n  \"amount_paid\": 999,\n  \"booking_date_time\": \"2026-05-27T10:30:00Z\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/events/sync-booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events",
+            "sync-booking"
+          ]
+        },
+        "description": "Expected response: 409 Conflict. Prevent double record insertion on duplicate payment_id/booking_id/order_id."
+      }
+    },
+    {
+      "name": "5. Malformed Payload (Missing Required Fields)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "MRCOACH_EVENT_SYNC_2026_SECRET",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_name\": \"Jane Doe\",\n  \"verified_mobile_number\": \"+919876543210\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/events/sync-booking",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events",
+            "sync-booking"
+          ]
+        },
+        "description": "Expected response: 400 Bad Request. Lists exact missing validation fields."
+      }
+    }
+  ]
+}
