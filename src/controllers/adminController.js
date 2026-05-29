@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Slot = require('../models/Slot');
 const Product = require('../models/Product');
 const Config = require('../models/Config');
+const EventBooking = require('../models/EventBooking');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT token
@@ -464,6 +465,80 @@ const importAdminUsers = async (req, res) => {
   }
 };
 
+// @desc    Export OTP-verified customer phone numbers to Excel
+// @route   GET /api/admin/users/export-verified-phones
+// @access  Public (Temporary for dev)
+const exportVerifiedPhoneNumbers = async (req, res) => {
+  try {
+    const users = await User.find({
+      role: 'user',
+      deleted: { $ne: true },
+      phoneNumber: { $exists: true, $ne: null, $ne: '' }
+    });
+
+    const normalizePhone = (num) => {
+      if (!num) return null;
+      let cleaned = num.toString().replace(/[\s\-\(\)]/g, '');
+      if (!cleaned) return null;
+      
+      if (cleaned.startsWith('+')) {
+        return cleaned;
+      }
+      if (cleaned.startsWith('91') && cleaned.length === 12) {
+        return '+' + cleaned;
+      }
+      if (cleaned.length === 10 && /^\d+$/.test(cleaned)) {
+        return '+91' + cleaned;
+      }
+      return cleaned;
+    };
+
+    const uniqueNormalizedNumbers = new Set();
+    const exportData = [];
+    let serialNum = 1;
+
+    for (const user of users) {
+      const normalized = normalizePhone(user.phoneNumber);
+      if (!normalized) continue;
+
+      if (!uniqueNormalizedNumbers.has(normalized)) {
+        uniqueNormalizedNumbers.add(normalized);
+        exportData.push({
+          'Serial Number': serialNum++,
+          'Verified Mobile Number': normalized,
+          'User Name': user.name || 'N/A',
+          'Registration Date': user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : 'N/A'
+        });
+      }
+    }
+
+    const XLSX = require('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 15 }, // Serial Number
+      { wch: 25 }, // Verified Mobile Number
+      { wch: 25 }, // User Name
+      { wch: 20 }  // Registration Date
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Verified Phone Numbers');
+
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=verified_phone_numbers.xlsx');
+
+    return res.status(200).send(excelBuffer);
+  } catch (error) {
+    console.error('Error exporting phone numbers:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 // @desc    Get Admin Dashboard Overview statistics
 // @route   GET /api/admin/overview
 // @access  Public (Temporary for dev)
@@ -763,5 +838,6 @@ module.exports = {
   deleteAdminUser,
   getAdminUserDetail,
   getAdminEventBookings,
-  getAdminEventOverview
+  getAdminEventOverview,
+  exportVerifiedPhoneNumbers
 };
